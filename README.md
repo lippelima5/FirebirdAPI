@@ -1,71 +1,80 @@
 # FirebirdAPI
 
-FirebirdAPI é uma API REST construída com Python e FastAPI para consultas de leitura (somente `SELECT`) em um banco de dados Firebird. A API aplica paginação obrigatória em todas as consultas, permitindo acesso seguro e eficiente aos dados sem necessidade de modificar diretamente o banco.
+FirebirdAPI é uma API em Python criada com FastAPI que fornece uma camada de acesso de leitura ao banco de dados Firebird. Esta API permite a execução de consultas `SELECT` de forma segura, rejeitando comandos que possam modificar o banco de dados.
 
-## Pré-requisitos
+## Requisitos
 
-- **Python 3.8+**
-- **Firebird** (Banco de dados)
-- **Dependências do Python**:
-  - FastAPI
-  - Firebird-driver
-  - Python-dotenv
-  - Uvicorn (para executar a API)
+- Python 3.7 ou superior
+- Banco de dados Firebird
+- Dependências do projeto listadas em `requirements.txt`
 
 ## Instalação
 
-1. Clone este repositório:
+1. **Clone o repositório**
+
    ```bash
-   git clone https://github.com/seu_usuario/FirebirdAPI.git
-   cd FirebirdAPI
+   git clone https://github.com/lippelima5/firebirdapi.git
+   cd firebirdapi
    ```
 
-2. Instale as dependências:
+2. **Instale as dependências**
+
+   No diretório do projeto, execute:
+
    ```bash
-   pip install fastapi uvicorn firebird-driver python-dotenv
+   pip install -r requirements.txt
    ```
 
-3. Crie um arquivo `.env` para configurar as credenciais de conexão com o banco de dados Firebird. No diretório principal do projeto, crie o arquivo `.env` com o seguinte conteúdo:
+   O arquivo `requirements.txt` contém as bibliotecas necessárias:
 
-   ```plaintext
-   DB_DSN=localhost:/caminho/para/seu/banco.fdb
-   DB_USER=seu_usuario
-   DB_PASSWORD=sua_senha
+   ```
+   fastapi
+   uvicorn
+   python-dotenv
+   firebird-driver
    ```
 
-   - **DB_DSN**: DSN do banco de dados Firebird (por exemplo, `localhost:/path/to/your/database.fdb`).
-   - **DB_USER**: Usuário do banco de dados.
-   - **DB_PASSWORD**: Senha do banco de dados.
+## Configuração do Banco de Dados
 
-## Execução
+Crie um arquivo `.env` na raiz do projeto para armazenar as credenciais do banco de dados Firebird. Esse arquivo deve conter as seguintes variáveis:
 
-Para iniciar o servidor, execute:
+```plaintext
+DB_DSN=localhost:/caminho/para/seu/banco.fdb
+DB_USER=seu_usuario
+DB_PASSWORD=sua_senha
+```
+
+- **DB_DSN**: String de conexão com o banco de dados (ex: `localhost:/path/to/your/database.fdb`).
+- **DB_USER**: Nome de usuário para acessar o banco de dados.
+- **DB_PASSWORD**: Senha do usuário do banco de dados.
+
+> **Nota:** Certifique-se de manter o arquivo `.env` seguro, pois ele contém informações sensíveis.
+
+## Executando o Servidor
+
+Após configurar o arquivo `.env`, você pode iniciar o servidor com o comando:
 
 ```bash
 uvicorn app:app --reload
 ```
 
-A API estará disponível em `http://127.0.0.1:8000`.
+O servidor estará disponível em [http://127.0.0.1:8000](http://127.0.0.1:8000).
 
-## Uso
-
-A API possui um endpoint principal para consultas SQL de leitura com paginação.
+## Utilização
 
 ### Endpoint `/execute`
 
-**POST** `/execute`
+O endpoint principal `/execute` permite executar consultas `SELECT` no banco de dados Firebird.
 
-- **Descrição**: Executa uma consulta `SELECT` no banco de dados Firebird, retornando os dados paginados.
-- **Parâmetros de Query**:
-  - `limit` (int, opcional, padrão: 10): Limita o número de registros retornados. Mínimo: 1, Máximo: 100.
-  - `offset` (int, opcional, padrão: 0): Define o ponto inicial para os registros.
-- **Corpo da Requisição** (JSON):
-  - `query` (string): Consulta SQL `SELECT` a ser executada. **Somente consultas `SELECT` são permitidas.**
+- **Método**: POST
+- **Parâmetros**: JSON no formato `{"query": "SELECT * FROM sua_tabela"}`
 
-**Exemplo de Requisição**:
+#### Exemplo de Solicitação
+
+Faça uma requisição POST ao endpoint com uma consulta:
 
 ```http
-POST http://127.0.0.1:8000/execute?limit=10&offset=20
+POST http://127.0.0.1:8000/execute
 Content-Type: application/json
 
 {
@@ -73,61 +82,29 @@ Content-Type: application/json
 }
 ```
 
-**Exemplo de Resposta**:
+#### Exemplo de Resposta
 
 ```json
 {
-    "resultados": [
-        {"coluna1": "valor1", "coluna2": "valor2"},
-        {"coluna1": "valor3", "coluna2": "valor4"}
-    ],
-    "limit": 10,
-    "offset": 20
+    "result": [
+        {
+            "coluna1": "valor1",
+            "coluna2": "valor2"
+        },
+        ...
+    ]
 }
 ```
 
-### Regras de Segurança
+### Observação de Segurança
 
-1. **Somente Consultas `SELECT`**: A API permite apenas comandos `SELECT`. Consultas contendo `INSERT`, `DELETE`, `UPDATE`, `CREATE`, `DROP`, entre outras, serão rejeitadas com um erro de autorização.
-2. **Paginação Obrigatória**: Todas as consultas devem incluir `limit` e `offset`, controlando o número de registros retornados e o ponto de início dos dados.
+- Somente consultas `SELECT` são permitidas.
+- Comandos de modificação de dados, como `INSERT`, `UPDATE`, `DELETE`, `CREATE`, `DROP`, etc., são bloqueados e resultam em erro.
 
-### Logging
+### Logs
 
-- A API registra todas as requisições em um arquivo `app.log`, mantendo apenas as últimas 1000 linhas.
-- Tentativas de consultas não permitidas e erros são registrados com o nível `WARNING` ou `ERROR`.
-
-## Estrutura do Código
-
-```plaintext
-.
-├── .env                # Configurações de conexão com o banco
-├── app.py              # Código principal da API
-├── app.log             # Arquivo de logs (criado automaticamente)
-└── README.md           # Documentação do projeto
-```
-
-## Executando Testes
-
-Para testar a API, você pode usar ferramentas como **Postman** ou **curl**. Abaixo está um exemplo com `curl`:
-
-```bash
-curl -X POST "http://127.0.0.1:8000/execute?limit=10&offset=0" \
--H "Content-Type: application/json" \
--d "{\"query\": \"SELECT * FROM sua_tabela\"}"
-```
+A API mantém um arquivo de log (`app.log`) com os registros das consultas executadas e tentativas não autorizadas. Os logs são limitados às últimas 1000 linhas para evitar o crescimento excessivo do arquivo.
 
 ## Contribuição
 
 Contribuições são bem-vindas! Sinta-se à vontade para abrir uma _issue_ ou _pull request_ com melhorias, correções de bugs, ou novas funcionalidades.
-
----
-
-## Licença
-
-Este projeto é licenciado sob a [MIT License](LICENSE).
-
---- 
-
-### Observações
-
-Esse projeto serve como uma camada de API somente leitura para bancos Firebird e deve ser utilizado em ambientes controlados. Certifique-se de revisar os logs e monitorar o uso para garantir a segurança e o desempenho.
